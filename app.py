@@ -106,6 +106,10 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
 
                 Sua tarefa é realizar 5 tipos de análise:
                 1. Verificação de Notícias: O conteúdo bate com os resultados da busca? Há fontes?
+                - Se o conteúdo NÃO possuir link:
+                    - NÃO considere automaticamente como falso ou perigoso
+                    - Avalie a credibilidade com base na linguagem, coerência e plausibilidade
+                    - Verifique se parece uma notícia real (tom neutro, sem exageros)
                 2. Verificação de Links/Golpes:
                 - Analise:
                     - presença de encurtadores (bit.ly, tinyurl)
@@ -128,6 +132,8 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                 - Golpes claros, links de phishing ou fake news perigosas: 0 a 30.
                 - Imagens puramente de IA se passando por reais ou informações sem fontes claras: 31 a 69.
                 - Confirmado por fontes oficiais, seguro e sem manipulação: 70 a 100.
+                - A ausência de link NÃO deve reduzir significativamente a pontuação.
+                - A penalização só deve ocorrer se houver sinais claros de desinformação.
 
                 Retorne o relatório RIGOROSAMENTE neste formato Markdown:
 
