@@ -1,30 +1,37 @@
 import streamlit as st
 import base64
 import os
+
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
+from duckduckgo_search import DDGS
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-st.set_page_config(page_title="Black Panther", page_icon="🛡️", layout="centered")
+st.set_page_config(page_title="TrustCheck", page_icon="🛡️", layout="centered")
 
-vision_llm = ChatGroq(model_name="meta-llama/llama-4-scout-17b-16e-instruct", groq_api_key=GROQ_API_KEY)
-text_llm = ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=0.1)
+vision_llm = ChatGroq(
+    model_name="meta-llama/llama-4-scout-17b-16e-instruct",
+    groq_api_key=GROQ_API_KEY
+)
 
-def buscar(query):
-    return f"""
-    Simulação de busca em fontes confiáveis:
-
-    - Verifique em sites como G1, UOL e CNN Brasil
-    - Procure o título da notícia no Google
-    - Compare com outras fontes
-
-    (Busca automatizada temporariamente indisponível no ambiente)
-    """
+text_llm = ChatGroq(
+    model_name="llama-3.3-70b-versatile",
+    groq_api_key=GROQ_API_KEY,
+    temperature=0.1
+)
 
 def buscar(query):
     try:
-        return search.run(query)
+        with DDGS() as ddgs:
+            resultados = ddgs.text(query, max_results=3)
+            textos = []
+
+            for r in resultados:
+                textos.append(f"{r['title']} - {r['body']}")
+
+            return "\n".join(textos)
+
     except:
         return "Busca indisponível no momento."
 
