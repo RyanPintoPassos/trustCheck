@@ -110,6 +110,10 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                     - NÃO considere automaticamente como falso ou perigoso
                     - Avalie a credibilidade com base na linguagem, coerência e plausibilidade
                     - Verifique se parece uma notícia real (tom neutro, sem exageros)
+                    - Se o conteúdo for uma manchete jornalística curta:
+                    - NÃO penalize pela ausência de link
+                    - Reconheça linguagem jornalística (tom neutro, direto, informativo)
+                    - Considere como potencialmente confiável mesmo sem fonte explícita
                 2. Verificação de Links/Golpes:
                 - Analise:
                     - presença de encurtadores (bit.ly, tinyurl)
@@ -134,6 +138,7 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                 - Confirmado por fontes oficiais, seguro e sem manipulação: 70 a 100.
                 - A ausência de link NÃO deve reduzir significativamente a pontuação.
                 - A penalização só deve ocorrer se houver sinais claros de desinformação.
+                - Conteúdos que parecem manchetes reais, mesmo sem link, devem receber pontuação intermediária (60 a 75).
 
                 Retorne o relatório RIGOROSAMENTE neste formato Markdown:
 
@@ -145,7 +150,7 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                 *(Liste apenas os aplicáveis usando emojis, ex: ⚠️ Link perigoso, ❓ Informação não confirmada, 🧠 Possível imagem gerada por IA, 🎭 Manipulação emocional detectada. Se estiver tudo ok, escreva "✅ Nenhum alerta de risco")*
 
                 ### 🔎 ANÁLISE DETALHADA:
-                - **Fatos e Fontes:** (O que dizem as fontes oficiais vs o texto)
+                -**Fatos e Fontes:** (Compare com fontes se houver. Caso não haja, avalie a credibilidade com base na estrutura e linguagem do conteúdo)
                 - **Segurança e Links:** (Análise de phishing/golpe, se aplicável)
                 - **Análise Visual / IA:** (Se houver descrição de imagem, destaque se há anomalias ou sinais de manipulação)
 
