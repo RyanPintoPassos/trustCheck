@@ -1,10 +1,10 @@
 import streamlit as st
 import base64
-from langchain_groq import ChatGroq
-from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_core.prompts import PromptTemplate
-
 import os
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 st.set_page_config(page_title="Black Panther", page_icon="🛡️", layout="centered")
@@ -12,7 +12,13 @@ st.set_page_config(page_title="Black Panther", page_icon="🛡️", layout="cent
 vision_llm = ChatGroq(model_name="meta-llama/llama-4-scout-17b-16e-instruct", groq_api_key=GROQ_API_KEY)
 text_llm = ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=0.1)
 
-search = DuckDuckGoSearchRun()
+search = DuckDuckGoSearchAPIWrapper()
+
+def buscar(query):
+    try:
+        return search.run(query)
+    except:
+        return "Busca indisponível no momento."
 
 st.title("🛡️ Sistema de Validação e Segurança Digital")
 st.markdown("**Verifique a veracidade de notícias, detecte links suspeitos e identifique conteúdo gerado por IA.**")
@@ -73,8 +79,7 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                 else:
                     query_base = conteudo_final[:100].replace('\n', ' ')
                     query = f"{query_base} site:g1.globo.com OR site:uol.com.br OR site:cnnbrasil.com.br"
-                    resultados_web = search.run(query)
-
+                    resultados_web = buscar(query)
                 template = """
                 Você é um Especialista em Segurança Digital, Fact-Checking e Educação Midiática.
 
