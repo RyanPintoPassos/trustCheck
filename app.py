@@ -3,7 +3,6 @@ import base64
 import os
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -12,7 +11,16 @@ st.set_page_config(page_title="Black Panther", page_icon="🛡️", layout="cent
 vision_llm = ChatGroq(model_name="meta-llama/llama-4-scout-17b-16e-instruct", groq_api_key=GROQ_API_KEY)
 text_llm = ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=GROQ_API_KEY, temperature=0.1)
 
-search = DuckDuckGoSearchAPIWrapper()
+def buscar(query):
+    return f"""
+    Simulação de busca em fontes confiáveis:
+
+    - Verifique em sites como G1, UOL e CNN Brasil
+    - Procure o título da notícia no Google
+    - Compare com outras fontes
+
+    (Busca automatizada temporariamente indisponível no ambiente)
+    """
 
 def buscar(query):
     try:
