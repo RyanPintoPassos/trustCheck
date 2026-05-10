@@ -10,7 +10,7 @@ from duckduckgo_search import DDGS
 # CONFIG
 # =========================
 
-GROQ_API_KEY = os.getenv("GROQ877777")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 st.set_page_config(
     page_title="TrustCheck",
