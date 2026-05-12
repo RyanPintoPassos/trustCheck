@@ -6,10 +6,6 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from duckduckgo_search import DDGS
 
-# =========================
-# CONFIG
-# =========================
-
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 st.set_page_config(
@@ -18,17 +14,10 @@ st.set_page_config(
     layout="centered"
 )
 
-# =========================
-# VALIDAÇÃO API KEY
-# =========================
-
 if not GROQ_API_KEY:
     st.error("GROQ_API_KEY não encontrada nas variáveis do Streamlit.")
     st.stop()
 
-# =========================
-# MODELOS
-# =========================
 
 vision_llm = ChatGroq(
     model_name="meta-llama/llama-4-scout-17b-16e-instruct",
@@ -40,10 +29,6 @@ text_llm = ChatGroq(
     groq_api_key=GROQ_API_KEY,
     temperature=0.1
 )
-
-# =========================
-# BUSCA WEB
-# =========================
 
 def buscar(query):
     try:
@@ -73,10 +58,6 @@ def buscar(query):
     except Exception as e:
         return f"Erro na busca web: {str(e)}"
 
-# =========================
-# UI
-# =========================
-
 st.title("🛡️ Sistema de Validação e Segurança Digital")
 
 st.markdown("""
@@ -88,10 +69,6 @@ tab1, tab2 = st.tabs(["📝 Texto ou Link", "🖼️ Print / Imagem"])
 
 input_texto = ""
 
-# =========================
-# ABA TEXTO
-# =========================
-
 with tab1:
 
     input_texto = st.text_area(
@@ -99,10 +76,6 @@ with tab1:
         height=150,
         placeholder="Ex: 'Urgente! Clique aqui para resgatar seu prêmio...'"
     )
-
-# =========================
-# ABA IMAGEM
-# =========================
 
 with tab2:
 
@@ -172,10 +145,6 @@ Formato obrigatório:
                 except Exception as e:
                     st.error(f"Erro ao analisar imagem: {e}")
 
-# =========================
-# CONTEÚDO FINAL
-# =========================
-
 conteudo_final = (
     input_texto.strip()
     if input_texto.strip()
@@ -183,10 +152,6 @@ conteudo_final = (
 )
 
 st.divider()
-
-# =========================
-# BOTÃO PRINCIPAL
-# =========================
 
 if st.button(
     "🚀 ANALISAR CONFIABILIDADE E SEGURANÇA",
@@ -206,10 +171,6 @@ if st.button(
         ):
 
             try:
-
-                # =========================
-                # BUSCA WEB
-                # =========================
 
                 if "Nenhum texto na imagem" in conteudo_final:
 
@@ -234,47 +195,47 @@ site:cnnbrasil.com.br
 
                     resultados_web = buscar(query)
 
-                # =========================
-                # PROMPT
-                # =========================
-
                 template = """
-Você é um Especialista em Segurança Digital,
-Fact-Checking e Educação Midiática.
+Você é um Especialista em Segurança Digital, Fact-Checking e Educação Midiática.
 
-CONTEÚDO:
-{conteudo}
+                CONTEÚDO A SER ANALISADO (Pode conter texto, links ou análise de uma imagem): 
+                {conteudo}
 
-RESULTADOS DA BUSCA:
-{resultados}
+                RESULTADOS DA BUSCA EM FONTES OFICIAIS: 
+                {resultados}
 
-Faça:
+                Sua tarefa é realizar 5 tipos de análise:
+                1. Verificação de Notícias: O conteúdo bate com os resultados da busca? Há fontes?
+                2. Verificação de Links/Golpes: Parece phishing? Pede dados? Promete dinheiro fácil?
+                3. Conteúdo Viral: Usa linguagem alarmista, apela para a emoção ou exige compartilhamento urgente?
+                4. Conteúdo Gerado por IA: O texto é artificialmente perfeito, sem opinião humana, ou repetitivo?
+                5. Imagem: (Avalie os dados de [ANÁLISE VISUAL] caso existam. A imagem foi gerada por IA? Há manipulação?)
 
-1. Verificação de fatos
-2. Detecção de golpes
-3. Linguagem manipulativa
-4. Sinais de IA
-5. Análise visual
+                Regras para PONTUAÇÃO (0 a 100 baseada em Confiabilidade, Consistência e Segurança):
+                - Golpes claros, links de phishing ou fake news perigosas: 0 a 30.
+                - Imagens puramente de IA se passando por reais ou informações sem fontes claras: 31 a 69.
+                - Confirmado por fontes oficiais, seguro e sem manipulação: 70 a 100.
 
-Retorne EXATAMENTE nesse formato markdown:
+                Retorne o relatório RIGOROSAMENTE neste formato Markdown:
 
-### 🎯 RESULTADO FINAL
-- **PONTUAÇÃO:** [0-100]
-- **CLASSIFICAÇÃO:** [Confiável, Duvidoso ou Perigoso]
+                ### 🎯 RESULTADO FINAL
+                - **PONTUAÇÃO:** [Nota de 0 a 100]
+                - **CLASSIFICAÇÃO:** [Escolha APENAS UMA: Confiável, Duvidoso, ou Perigoso]
 
-### 🚨 SISTEMA DE ALERTAS
-- Liste alertas relevantes
+                ### 🚨 SISTEMA DE ALERTAS
+                *(Liste apenas os aplicáveis usando emojis, ex: ⚠️ Link perigoso, ❓ Informação não confirmada, 🧠 Possível imagem gerada por IA, 🎭 Manipulação emocional detectada. Se estiver tudo ok, escreva "✅ Nenhum alerta de risco")*
 
-### 🔎 ANÁLISE DETALHADA
-- Fatos e Fontes
-- Segurança e Links
-- Análise Visual / IA
+                ### 🔎 ANÁLISE DETALHADA:
+                - **Fatos e Fontes:** (O que dizem as fontes oficiais vs o texto)
+                - **Segurança e Links:** (Análise de phishing/golpe, se aplicável)
+                - **Análise Visual / IA:** (Se houver descrição de imagem, destaque se há anomalias ou sinais de manipulação)
 
-### 📝 CONCLUSÃO TÉCNICA
-- Explique a classificação
+                ### 📝 CONCLUSÃO TÉCNICA:
+                - (Explique o motivo central da pontuação e classificação)
 
-### 💡 APRENDA A IDENTIFICAR
-- Dica educativa
+                ### 💡 APRENDA A IDENTIFICAR (Educação ao Usuário):
+                - (Dê uma dica prática de como o usuário pode identificar sozinho esse tipo de golpe, fake news ou manipulação de imagem no futuro).
+                """
 """
 
                 prompt = PromptTemplate.from_template(template)
