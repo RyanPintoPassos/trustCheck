@@ -1,260 +1,197 @@
 import streamlit as st
 import base64
 import os
-
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from duckduckgo_search import DDGS
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
+# 1. Configuração da Página
 st.set_page_config(
-    page_title="TrustCheck",
-    page_icon="🛡️",
+    page_title="TrustCheck - Validador", 
+    page_icon="🛡️", 
     layout="centered"
 )
 
-if not GROQ_API_KEY:
-    st.error("GROQ_API_KEY não encontrada nas variáveis do Streamlit.")
-    st.stop()
+# 2. Configuração da Chave API
+# Dica: No Streamlit Cloud, coloque a chave em Settings > Secrets
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+if GROQ_API_KEY == "SUA_CHAVE_API_AQUI":
+    st.warning("⚠️ Chave da Groq não encontrada. Configure a GROQ_API_KEY no servidor ou no código.")
 
-vision_llm = ChatGroq(
-    model_name="meta-llama/llama-4-scout-17b-16e-instruct",
-    groq_api_key=GROQ_API_KEY,
-)
+# 3. Inicialização dos Modelos de IA
+try:
+    vision_llm = ChatGroq(
+        model_name="llama-3.2-11b-vision-preview", # Modelo de visão atualizado e estável
+        groq_api_key=GROQ_API_KEY
+    )
 
-text_llm = ChatGroq(
-    model_name="llama-3.3-70b-versatile",
-    groq_api_key=GROQ_API_KEY,
-    temperature=0.1
-)
+    text_llm = ChatGroq(
+        model_name="llama-3.3-70b-versatile",
+        groq_api_key=GROQ_API_KEY,
+        temperature=0.1
+    )
+except Exception as e:
+    st.error(f"Erro ao inicializar os modelos: {e}")
 
-def buscar(query):
+# 4. Função de Busca Aprimorada (Forçando IP/Região Brasil)
+def buscar_web(query):
+    """Busca no DuckDuckGo forçando resultados brasileiros para evitar discrepâncias do Streamlit Cloud"""
     try:
-        with DDGS(timeout=20) as ddgs:
-
-            resultados = list(
-                ddgs.text(
-                    query,
-                    max_results=3
-                )
-            )
-
+        with DDGS() as ddgs:
+            # 1ª Tentativa: Busca focada nos sites de notícia
+            resultados = list(ddgs.text(query, region="br-pt", max_results=5))
+            
+            # 2ª Tentativa (Fallback): Se a busca restrita não achar nada, tenta a busca aberta
             if not resultados:
-                return "Nenhum resultado encontrado."
-
+                query_aberta = query.split("site:")[0].strip()
+                resultados = list(ddgs.text(query_aberta, region="br-pt", max_results=3))
+                
+            if not resultados:
+                return "Nenhum resultado encontrado nas fontes oficiais para validar esta informação."
+            
+            # Formata os resultados para o LLM ler facilmente
             textos = []
-
             for r in resultados:
-
-                titulo = r.get("title", "")
-                body = r.get("body", "")
-
-                textos.append(f"{titulo} - {body}")
-
+                textos.append(f"TÍTULO: {r.get('title')}\nCONTEÚDO: {r.get('body')}\n---")
+            
             return "\n".join(textos)
-
+            
     except Exception as e:
         return f"Erro na busca web: {str(e)}"
 
+# 5. Interface de Usuário
 st.title("🛡️ Sistema de Validação e Segurança Digital")
+st.markdown("**Verifique a veracidade de notícias, detecte links suspeitos e identifique conteúdo gerado por IA.**")
 
-st.markdown("""
-**Verifique a veracidade de notícias, detecte links suspeitos
-e identifique conteúdo gerado por IA.**
-""")
-
+# Abas de entrada de dados
 tab1, tab2 = st.tabs(["📝 Texto ou Link", "🖼️ Print / Imagem"])
 
 input_texto = ""
 
 with tab1:
-
     input_texto = st.text_area(
-        "Cole a notícia, o texto viral ou o link aqui:",
+        "Cole a notícia, o texto viral ou o link aqui:", 
         height=150,
-        placeholder="Ex: 'Urgente! Clique aqui para resgatar seu prêmio...'"
+        placeholder="Ex: 'O presidente declarou hoje que...' ou 'Urgente! Clique para resgatar...'"
     )
 
 with tab2:
-
-    foto = st.file_uploader(
-        "Suba o print da notícia ou imagem suspeita:",
-        type=["png", "jpg", "jpeg"]
-    )
-
-    if foto is None and "conteudo_extraido" in st.session_state:
-        del st.session_state["conteudo_extraido"]
+    foto = st.file_uploader("Suba o print da notícia ou imagem suspeita:", type=['png', 'jpg', 'jpeg'])
+    
+    # Limpa o estado se a foto for removida
+    if foto is None and 'conteudo_extraido' in st.session_state:
+        del st.session_state['conteudo_extraido']
 
     if foto:
-
         st.image(foto, width=300)
-
-        if st.button("Analisar Imagem"):
-
-            with st.spinner("Analisando imagem com IA Visual..."):
-
+        
+        if st.button("Analisar Imagem com IA"):
+            with st.spinner("Lendo e analisando a imagem..."):
                 try:
-
-                    img_base64 = base64.b64encode(
-                        foto.getvalue()
-                    ).decode()
-
+                    img_base64 = base64.b64encode(foto.getvalue()).decode()
                     msg = vision_llm.invoke([
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": """
-Faça duas coisas:
-
-1. Transcreva todo o texto legível da imagem.
-Se NÃO houver texto, escreva:
-[TEXTO EXTRAÍDO]: Nenhum texto na imagem
-
-2. Analise visualmente:
-- descreva brevemente a cena
-- diga se há sinais de manipulação
-- diga se parece IA
-
-Formato obrigatório:
-
-[TEXTO EXTRAÍDO]: ...
-[ANÁLISE VISUAL]: ...
-"""
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{img_base64}"
-                                    }
-                                }
-                            ]
-                        }
+                        {"role": "user", "content": [
+                            {"type": "text",
+                             "text": """
+                             Faça duas coisas:
+                             1. Transcreva todo o texto legível desta imagem. Se NÃO houver texto na imagem, escreva exatamente: "[TEXTO EXTRAÍDO]: Nenhum texto na imagem".
+                             2. Analise a imagem visualmente: Descreva brevemente a cena. Há sinais de manipulação, uso fora de contexto, ou parece ter sido gerada por IA?
+                             
+                             Retorne no formato:
+                             [TEXTO EXTRAÍDO]: <texto>
+                             [ANÁLISE VISUAL]: <análise>
+                             """},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
+                        ]}
                     ])
-
-                    st.session_state["conteudo_extraido"] = msg.content
-
-                    st.success("Análise visual concluída!")
-
-                    with st.expander("Resultado da análise visual"):
+                    st.session_state['conteudo_extraido'] = msg.content
+                    st.success("Leitura da imagem concluída!")
+                    
+                    with st.expander("Ver resultado da leitura visual"):
                         st.write(msg.content)
-
+                        
                 except Exception as e:
-                    st.error(f"Erro ao analisar imagem: {e}")
+                    st.error(f"Erro ao analisar a imagem: {e}")
 
-conteudo_final = (
-    input_texto.strip()
-    if input_texto.strip()
-    else st.session_state.get("conteudo_extraido", "")
-)
+# 6. Lógica Principal de Análise
+# Define o que será analisado (texto digitado ou texto extraído da imagem)
+conteudo_final = input_texto.strip() if input_texto.strip() else st.session_state.get('conteudo_extraido', "")
 
 st.divider()
 
-if st.button(
-    "🚀 ANALISAR CONFIABILIDADE E SEGURANÇA",
-    use_container_width=True
-):
-
+if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=True):
     if not conteudo_final:
-
-        st.error(
-            "Insira um texto/link ou analise uma imagem primeiro."
-        )
-
+        st.error("Por favor, insira um texto/link na aba 'Texto' ou analise uma foto na aba 'Imagem'!")
     else:
-
-        with st.spinner(
-            "Cruzando dados, pesquisando fontes e analisando..."
-        ):
-
+        with st.spinner("Cruzando dados, pesquisando fontes e detectando padrões..."):
             try:
-
+                # Decide se faz a busca web
                 if "Nenhum texto na imagem" in conteudo_final:
-
-                    resultados_web = """
-Busca ignorada:
-A imagem não contém texto suficiente.
-"""
-
+                    resultados_web = "Busca web ignorada: A imagem não contém texto para pesquisa em sites de notícias. Baseie-se apenas na análise visual."
                 else:
+                    # Pega as primeiras palavras para formular a pesquisa
+                    query_base = conteudo_final[:100].replace('\n', ' ')
+                    query = f"{query_base} site:g1.globo.com OR site:uol.com.br OR site:cnnbrasil.com.br"
+                    resultados_web = buscar_web(query)
 
-                    query_base = (
-                        conteudo_final[:120]
-                        .replace("\n", " ")
-                    )
-
-                    query = f"""
-{query_base}
-site:g1.globo.com OR
-site:uol.com.br OR
-site:cnnbrasil.com.br
-"""
-
-                    resultados_web = buscar(query)
-
+                # Prompt Template corrigido (Sem erros de aspas)
                 template = """
 Você é um Especialista em Segurança Digital, Fact-Checking e Educação Midiática.
 
-                CONTEÚDO A SER ANALISADO (Pode conter texto, links ou análise de uma imagem): 
-                {conteudo}
+CONTEÚDO A SER ANALISADO: 
+{conteudo}
 
-                RESULTADOS DA BUSCA EM FONTES OFICIAIS: 
-                {resultados}
+RESULTADOS DA BUSCA EM FONTES OFICIAIS: 
+{resultados}
 
-                Sua tarefa é realizar 5 tipos de análise:
-                1. Verificação de Notícias: O conteúdo bate com os resultados da busca? Há fontes?
-                2. Verificação de Links/Golpes: Parece phishing? Pede dados? Promete dinheiro fácil?
-                3. Conteúdo Viral: Usa linguagem alarmista, apela para a emoção ou exige compartilhamento urgente?
-                4. Conteúdo Gerado por IA: O texto é artificialmente perfeito, sem opinião humana, ou repetitivo?
-                5. Imagem: (Avalie os dados de [ANÁLISE VISUAL] caso existam. A imagem foi gerada por IA? Há manipulação?)
+Sua tarefa é realizar 5 tipos de análise:
+1. Verificação de Notícias: O conteúdo bate com os resultados da busca? Há fontes?
+2. Verificação de Links/Golpes: Parece phishing? Pede dados? Promete dinheiro fácil?
+3. Conteúdo Viral: Usa linguagem alarmista, apela para a emoção ou exige compartilhamento urgente?
+4. Conteúdo Gerado por IA: O texto é artificialmente perfeito, repetitivo ou sem opinião humana?
+5. Imagem: (Avalie os dados de [ANÁLISE VISUAL] caso existam. Foi gerada por IA? Há manipulação?)
 
-                Regras para PONTUAÇÃO (0 a 100 baseada em Confiabilidade, Consistência e Segurança):
-                - Golpes claros, links de phishing ou fake news perigosas: 0 a 30.
-                - Imagens puramente de IA se passando por reais ou informações sem fontes claras: 31 a 69.
-                - Confirmado por fontes oficiais, seguro e sem manipulação: 70 a 100.
+Regras para PONTUAÇÃO (0 a 100):
+- Golpes claros, links de phishing ou fake news perigosas: 0 a 30.
+- Imagens puramente de IA se passando por reais ou dados sem fontes claras: 31 a 69.
+- Confirmado por fontes oficiais, seguro e sem manipulação: 70 a 100.
 
-                Retorne o relatório RIGOROSAMENTE neste formato Markdown:
+Retorne o relatório RIGOROSAMENTE neste formato Markdown:
 
-                ### 🎯 RESULTADO FINAL
-                - **PONTUAÇÃO:** [Nota de 0 a 100]
-                - **CLASSIFICAÇÃO:** [Escolha APENAS UMA: Confiável, Duvidoso, ou Perigoso]
+### 🎯 RESULTADO FINAL
+- **PONTUAÇÃO:** [Nota de 0 a 100]
+- **CLASSIFICAÇÃO:** [Escolha: Confiável, Duvidoso ou Perigoso]
 
-                ### 🚨 SISTEMA DE ALERTAS
-                *(Liste apenas os aplicáveis usando emojis, ex: ⚠️ Link perigoso, ❓ Informação não confirmada, 🧠 Possível imagem gerada por IA, 🎭 Manipulação emocional detectada. Se estiver tudo ok, escreva "✅ Nenhum alerta de risco")*
+### 🚨 SISTEMA DE ALERTAS
+*(Liste apenas os aplicáveis usando emojis, ex: ⚠️ Link perigoso, ❓ Informação não confirmada. Se estiver tudo ok, escreva "✅ Nenhum alerta de risco")*
 
-                ### 🔎 ANÁLISE DETALHADA:
-                - **Fatos e Fontes:** (O que dizem as fontes oficiais vs o texto)
-                - **Segurança e Links:** (Análise de phishing/golpe, se aplicável)
-                - **Análise Visual / IA:** (Se houver descrição de imagem, destaque se há anomalias ou sinais de manipulação)
+### 🔎 ANÁLISE DETALHADA:
+- **Fatos e Fontes:** (O que dizem as fontes vs o texto analisado)
+- **Segurança e Links:** (Análise de phishing/golpe, se aplicável)
+- **Análise Visual / IA:** (Se houver imagem, destaque sinais de manipulação)
 
-                ### 📝 CONCLUSÃO TÉCNICA:
-                - (Explique o motivo central da pontuação e classificação)
+### 📝 CONCLUSÃO TÉCNICA:
+- (Explique o motivo central da pontuação)
 
-                ### 💡 APRENDA A IDENTIFICAR (Educação ao Usuário):
-                - (Dê uma dica prática de como o usuário pode identificar sozinho esse tipo de golpe, fake news ou manipulação de imagem no futuro).
-                """
-
-
+### 💡 APRENDA A IDENTIFICAR:
+- (Dica prática para o usuário identificar isso sozinho no futuro)
+"""
+                # Geração da resposta
                 prompt = PromptTemplate.from_template(template)
-
                 chain = prompt | text_llm
-
+                
                 analise = chain.invoke({
-                    "conteudo": conteudo_final,
+                    "conteudo": conteudo_final, 
                     "resultados": resultados_web
                 })
 
-                st.success("Análise concluída!")
-
+                st.success("Análise completa!")
                 st.markdown(analise.content)
-
-                # DEBUG OPCIONAL
-                with st.expander("Resultados da busca web"):
+                
+                # Debug (Opcional) para ver o que a IA leu na internet
+                with st.expander("Ver dados brutos da pesquisa na web"):
                     st.write(resultados_web)
 
             except Exception as e:
-
-                st.error(f"Erro geral: {e}")
+                st.error(f"Ocorreu um erro durante a análise: {e}")
