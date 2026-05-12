@@ -132,7 +132,7 @@ if st.button("🚀 ANALISAR CONFIABILIDADE E SEGURANÇA", use_container_width=Tr
                 else:
                     # Pega as primeiras palavras para formular a pesquisa
                     query_base = conteudo_final[:100].replace('\n', ' ')
-                    query = f"{query_base} site:g1.globo.com OR site:uol.com.br OR site:cnnbrasil.com.br"
+                    query = f"{query_base} noticias g1 uol cnn brasil"
                     resultados_web = buscar_web(query)
 
                 # Prompt Template corrigido (Sem erros de aspas)
