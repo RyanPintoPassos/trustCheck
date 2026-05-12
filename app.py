@@ -236,7 +236,7 @@ Você é um Especialista em Segurança Digital, Fact-Checking e Educação Midi�
                 ### 💡 APRENDA A IDENTIFICAR (Educação ao Usuário):
                 - (Dê uma dica prática de como o usuário pode identificar sozinho esse tipo de golpe, fake news ou manipulação de imagem no futuro).
                 """
-"""
+
 
                 prompt = PromptTemplate.from_template(template)
 
